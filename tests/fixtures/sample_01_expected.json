@@ -1,0 +1,21 @@
+{
+  "is_result_board": true,
+  "event_venue": "สร้างแป้น",
+  "event_date_day": 7,
+  "event_date_month_th": "ก.ค.",
+  "event_date_year_be": 69,
+  "rockets": [
+    {"rocket_name": "เสมียนศิลป์", "metric_a": 30, "metric_b": 55, "achieved_raw": "430", "achieved_value": 430, "outcome_icon": "win", "is_champion": false},
+    {"rocket_name": "ธนภัทรเบิกฟ้า", "metric_a": 20, "metric_b": 40, "achieved_raw": "390", "achieved_value": 390, "outcome_icon": "win", "is_champion": false},
+    {"rocket_name": "ส.แทรกเตอร์", "metric_a": 30, "metric_b": 70, "achieved_raw": "400", "achieved_value": 400, "outcome_icon": "win", "is_champion": false},
+    {"rocket_name": "อรุณีฟาร์ม", "metric_a": 30, "metric_b": 65, "achieved_raw": "455", "achieved_value": 455, "outcome_icon": "win", "is_champion": true},
+    {"rocket_name": "วังสันติสุข", "metric_a": 30, "metric_b": 50, "achieved_raw": "385", "achieved_value": 385, "outcome_icon": "win", "is_champion": false},
+    {"rocket_name": "สีกาตอง", "metric_a": 30, "metric_b": 70, "achieved_raw": "385", "achieved_value": 385, "outcome_icon": "win", "is_champion": false},
+    {"rocket_name": "พงษ์เจริญ", "metric_a": 30, "metric_b": 60, "achieved_raw": "หาย", "achieved_value": null, "outcome_icon": "tie", "is_champion": false},
+    {"rocket_name": "ส.ไพศาล", "metric_a": 40, "metric_b": 85, "achieved_raw": "65", "achieved_value": 65, "outcome_icon": "loss", "is_champion": false},
+    {"rocket_name": "ซานเล้าบันเทิงศิลป์", "metric_a": 25, "metric_b": 45, "achieved_raw": "หาย", "achieved_value": null, "outcome_icon": "tie", "is_champion": false},
+    {"rocket_name": "เทพปาก99", "metric_a": null, "metric_b": null, "metric_category_text": "ชมต.", "achieved_raw": "หาย", "achieved_value": null, "outcome_icon": "tie", "is_champion": false},
+    {"rocket_name": "เทพทัพหลวง", "metric_a": null, "metric_b": null, "metric_category_text": "ชมต.", "achieved_raw": "300", "achieved_value": 300, "outcome_icon": "tie", "is_champion": false},
+    {"rocket_name": "ธนภัทรการช่าง", "metric_a": null, "metric_b": null, "metric_category_text": "ชมต.", "achieved_raw": "หาย", "achieved_value": null, "outcome_icon": "tie", "is_champion": false}
+  ]
+}

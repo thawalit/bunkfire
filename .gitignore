@@ -1,0 +1,23 @@
+# ความลับ — ห้าม commit เด็ดขาด
+.env
+data/fb_state.json
+
+# ไฟล์ชั่วคราวของ SQLite (WAL/journal) — ไม่ commit
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# ไฟล์ .db ทั้งหมดถูก ignore ยกเว้น snapshot ที่ deploy ขึ้น Streamlit Cloud
+data/*.db
+!data/bunkfire.db
+
+data/images/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# build artifacts
+*.egg-info/
+build/
+dist/
