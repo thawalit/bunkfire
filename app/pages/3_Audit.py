@@ -50,10 +50,13 @@ for post in posts:
     with st.expander(f"โพสต์ #{post['id']} — {post['post_url']}"):
         col1, col2 = st.columns([1, 1])
         with col1:
-            if post["image_local_path"] and Path(post["image_local_path"]).exists():
-                st.image(post["image_local_path"], use_container_width=True)
+            # สร้าง path จาก fb_post_id ให้พกพาได้ (image_local_path เดิมเป็น absolute ของเครื่องที่ scrape
+            # จึงหาไม่เจอบน Streamlit Cloud) — รูปถูก commit ไว้ใน data/images/<fb_post_id>.jpg
+            img_path = config.IMAGES_DIR / f"{post['fb_post_id']}.jpg"
+            if img_path.exists():
+                st.image(str(img_path), use_container_width=True)
             else:
-                st.warning("ไม่พบไฟล์รูปในเครื่อง")
+                st.warning("ไม่พบไฟล์รูป (ยังไม่ได้ commit รูปนี้ขึ้น repo)")
         with col2:
             if post["vision_raw_response"]:
                 st.json(json.loads(post["vision_raw_response"]))
