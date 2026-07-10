@@ -26,7 +26,7 @@ def extract(image_bytes: bytes, media_type: str = "image/jpeg", model: str = con
     client = _get_client()
     response = client.messages.parse(
         model=model,
-        max_tokens=4096,
+        max_tokens=8192,  # ตารางผลที่มีบั้งไฟหลายสิบแถวทำให้ JSON เกิน 4096 tokens แล้วถูกตัดกลางคัน
         system=SYSTEM_PROMPT,
         messages=[{
             "role": "user",
