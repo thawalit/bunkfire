@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 import config  # noqa: E402
 from db.connection import get_connection, init_db  # noqa: E402
 from db.repository import get_all_rocket_score_summary, get_all_rocket_stats  # noqa: E402
+from stats.scoring import rank_name_matches  # noqa: E402
 
 st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 
@@ -35,9 +36,20 @@ else:
     with col2:
         search = st.text_input("ค้นหาชื่อบั้งไฟ")
 
-    filtered = df[df["races"] >= min_races]
     if search:
-        filtered = filtered[filtered["rocket_name"].str.contains(search, case=False, na=False)]
+        # ค้นหาข้ามทุกตัว (ไม่ติดเงื่อนไข min_races) เพื่อให้เจอชื่อที่เจาะจงเสมอ แม้แข่งน้อยครั้ง
+        q = search.strip()
+        # หาแบบ substring (พิมพ์บางส่วนของชื่อ) รวมกับ fuzzy (เผื่อสะกดเพี้ยน เช่น "ฟาโรเบิร์ตฟา")
+        sub_mask = df["rocket_name"].str.contains(q, case=False, na=False, regex=False)
+        ranked = rank_name_matches(q, df["rocket_name"].tolist())
+        fuzzy_names = [n for n, _ in ranked]
+        filtered = df[sub_mask | df["rocket_name"].isin(fuzzy_names)]
+        # แจ้งชื่อใกล้เคียงที่ดึงเข้ามาเพิ่ม (ที่ไม่ได้ตรงแบบ substring) เผื่อผู้ใช้พิมพ์เพี้ยน
+        extra = [f"{n} ({s * 100:.0f}%)" for n, s in ranked if q.lower() not in n.lower()]
+        if extra:
+            st.caption("รวมชื่อใกล้เคียง (เผื่อสะกดเพี้ยน): " + ", ".join(extra))
+    else:
+        filtered = df[df["races"] >= min_races]
 
     score_summary = get_all_rocket_score_summary(conn)
 
@@ -62,4 +74,8 @@ else:
             "คะแนนเฉลี่ย": st.column_config.NumberColumn(format="%.1f"),
         },
     )
-    st.caption(f"แสดง {len(display_df)} / {len(df)} รายการ (บั้งไฟที่แข่งน้อยกว่า {min_races} ครั้งถูกซ่อนไว้ตามค่าเริ่มต้น)")
+    if search:
+        note = "ค้นหาข้ามทุกตัว (ไม่ติดเงื่อนไขจำนวนครั้งที่แข่ง)"
+    else:
+        note = f"บั้งไฟที่แข่งน้อยกว่า {min_races} ครั้งถูกซ่อนไว้ตามค่าเริ่มต้น"
+    st.caption(f"แสดง {len(display_df)} / {len(df)} รายการ ({note})")

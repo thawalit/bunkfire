@@ -2,7 +2,7 @@ import pytest
 
 from db.connection import get_connection, init_db
 from db.repository import insert_event, insert_rocket_results, upsert_post
-from stats.scoring import score_rocket, score_rocket_list
+from stats.scoring import rank_name_matches, score_rocket, score_rocket_list
 
 
 @pytest.fixture()
@@ -87,3 +87,15 @@ def test_exact_match_sets_no_matched_name(conn):
 def test_truncated_name_not_fuzzy_matched(conn):
     # คำสั้นที่เป็นแค่ส่วนหนึ่งของชื่อยาว ไม่ควรถูกจับคู่ (ความยาวต่างกันมาก)
     assert score_rocket("เสมียน", conn).found is False
+
+
+def test_rank_name_matches_sorted_and_filtered():
+    cands = ["ฟาโรเบิกฟ้า", "โทนาโดเบิกฟ้า", "ไพศาลเบิกฟ้า", "ทองภักดี"]
+    ranked = rank_name_matches("ฟาโรเบิร์ตฟา", cands)
+    assert ranked[0][0] == "ฟาโรเบิกฟ้า"  # คล้ายที่สุดมาก่อน
+    assert all(s >= 0.7 for _, s in ranked)  # ตัดตัวที่ต่ำกว่าเกณฑ์ออก
+    assert "ทองภักดี" not in [n for n, _ in ranked]
+
+
+def test_rank_name_matches_empty_query_returns_nothing():
+    assert rank_name_matches("  ", ["ก", "ข"]) == []

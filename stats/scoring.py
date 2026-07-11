@@ -40,26 +40,34 @@ def normalize_name(name: str) -> str:
     return name.strip()
 
 
+def _name_similarity(query: str, cand: str) -> float:
+    """ความคล้ายของชื่อ (difflib ratio 0-1) พร้อมกันจับคู่แบบตัดคำ: ถ้าความยาวต่างกันมาก
+    (เช่นพิมพ์คำสั้นที่บังเอิญเป็นส่วนหนึ่งของชื่อยาว) คืน 0 — การสะกดเพี้ยนจริงความยาวจะใกล้กัน"""
+    if not cand or min(len(query), len(cand)) / max(len(query), len(cand)) < 0.6:
+        return 0.0
+    return SequenceMatcher(None, query, cand).ratio()
+
+
+def rank_name_matches(
+    query: str, candidates: list[str], threshold: float = config.FUZZY_MATCH_THRESHOLD
+) -> list[tuple[str, float]]:
+    """คืนชื่อที่คล้าย query ทั้งหมดที่ >= threshold เรียงจากคล้ายมากไปน้อย (ชื่อ, คะแนน)"""
+    query = query.strip()
+    if not query:
+        return []
+    scored = [(c, _name_similarity(query, c)) for c in candidates]
+    scored = [(c, s) for c, s in scored if s >= threshold]
+    scored.sort(key=lambda cs: cs[1], reverse=True)
+    return scored
+
+
 def find_closest_name(
     name: str, candidates: list[str], threshold: float = config.FUZZY_MATCH_THRESHOLD
 ) -> Optional[tuple[str, float]]:
     """หาชื่อในฐานข้อมูลที่คล้าย name ที่สุด (difflib ratio) คืน (ชื่อ, คะแนน) ถ้า >= threshold
     ใช้จับชื่อที่ Vision อ่านเพี้ยน เช่น "ฟาโรเบิร์ตฟา" -> "ฟาโรเบิกฟ้า" """
-    name = name.strip()
-    if not name:
-        return None
-    best_score, best_name = 0.0, None
-    for cand in candidates:
-        # ข้ามชื่อที่ความยาวต่างกันมาก (เช่นพิมพ์คำสั้นๆ ที่บังเอิญเป็นส่วนหนึ่งของชื่อยาว)
-        # การสะกดเพี้ยนจริงความยาวจะใกล้เคียงกัน — กันจับคู่แบบตัดคำ/ตรงบางส่วน
-        if min(len(name), len(cand)) / max(len(name), len(cand)) < 0.6:
-            continue
-        s = SequenceMatcher(None, name, cand).ratio()
-        if s > best_score:
-            best_score, best_name = s, cand
-    if best_name is not None and best_score >= threshold:
-        return best_name, best_score
-    return None
+    ranked = rank_name_matches(name, candidates, threshold)
+    return ranked[0] if ranked else None
 
 
 def score_rocket(
