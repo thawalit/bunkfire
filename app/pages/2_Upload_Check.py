@@ -63,7 +63,7 @@ if names:
                 "ไม่มีข้อมูล": "background-color: #fff3cd"}.get(v, "")
 
     st.dataframe(
-        df_out.style.applymap(_verdict_color, subset=["ผลทำนาย"]),
+        df_out.style.map(_verdict_color, subset=["ผลทำนาย"]),
         use_container_width=True, hide_index=True,
     )
     st.download_button(
