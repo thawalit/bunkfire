@@ -196,6 +196,35 @@ def get_rocket_score_stats(conn: sqlite3.Connection, rocket_name: str) -> Option
     }
 
 
+def get_all_rocket_score_summary(conn: sqlite3.Connection) -> dict[str, dict]:
+    """สรุป 'คะแนน' ของบั้งไฟทุกตัวในคิวรีเดียว (ไว้โชว์หน้า Dashboard)
+    คืน dict: rocket_name_normalized -> {'avg_score': float|None, 'last3': 'คะแนน, คะแนน, คะแนน'|None}
+    """
+    summary: dict[str, dict] = {}
+    for r in conn.execute(
+        "SELECT rocket_name_normalized nm, AVG(achieved_value) avg_score "
+        "FROM rocket_results WHERE achieved_value IS NOT NULL "
+        "GROUP BY rocket_name_normalized"
+    ):
+        summary[r["nm"]] = {"avg_score": r["avg_score"], "last3": None}
+
+    last: dict[str, list] = {}
+    for r in conn.execute(
+        "SELECT nm, av FROM ("
+        "  SELECT rr.rocket_name_normalized nm, rr.achieved_value av, "
+        "         ROW_NUMBER() OVER (PARTITION BY rr.rocket_name_normalized "
+        "                            ORDER BY e.event_date DESC, rr.id DESC) rn "
+        "  FROM rocket_results rr JOIN events e ON rr.event_id = e.id "
+        "  WHERE rr.achieved_value IS NOT NULL"
+        ") WHERE rn <= 3 ORDER BY nm, rn"
+    ):
+        last.setdefault(r["nm"], []).append(r["av"])
+    for nm, scores in last.items():
+        if nm in summary:
+            summary[nm]["last3"] = ", ".join(str(s) for s in scores)
+    return summary
+
+
 def get_rocket_last_results(
     conn: sqlite3.Connection, rocket_name: str, limit: int = 5
 ) -> list[sqlite3.Row]:
