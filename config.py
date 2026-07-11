@@ -21,6 +21,10 @@ FB_PAGE_NAME = os.environ.get("FB_PAGE_NAME", "BANHAOSTATION")
 # นับ "เสมอตัว" เป็นฝั่งไม่ชนะ (win_rate = wins / races) ตามที่ผู้ใช้ระบุไว้
 PASS_THRESHOLD = float(os.environ.get("PASS_THRESHOLD", "0.50"))
 
+# เกณฑ์ความคล้ายชื่อ (difflib ratio 0-1) สำหรับจับคู่ชื่อบั้งไฟที่สะกดเพี้ยน เช่น
+# "ฟาโรเบิร์ตฟา" -> "ฟาโรเบิกฟ้า"  ต่ำกว่านี้ถือว่าไม่พบ (กันจับคู่มั่ว)
+FUZZY_MATCH_THRESHOLD = float(os.environ.get("FUZZY_MATCH_THRESHOLD", "0.7"))
+
 # ฐานหลักร้อยของสูตรคำนวณ tie band จาก (A/B) — พบว่าคงที่ที่ 300 ในตัวอย่างที่มี
 TIE_BAND_BASE_HUNDRED = int(os.environ.get("TIE_BAND_BASE_HUNDRED", "300"))
 

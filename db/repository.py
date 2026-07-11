@@ -168,6 +168,17 @@ def get_all_rocket_stats(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT * FROM v_rocket_stats ORDER BY win_rate DESC, races DESC").fetchall()
 
 
+def get_distinct_rocket_names(conn: sqlite3.Connection) -> list[str]:
+    """รายชื่อบั้งไฟ (normalized) ที่มีในฐานข้อมูล — ใช้เป็นตัวเลือกจับคู่ชื่อที่สะกดเพี้ยน"""
+    return [
+        r["n"]
+        for r in conn.execute(
+            "SELECT DISTINCT rocket_name_normalized n FROM rocket_results "
+            "WHERE rocket_name_normalized IS NOT NULL AND rocket_name_normalized <> ''"
+        )
+    ]
+
+
 def get_rocket_score_stats(conn: sqlite3.Connection, rocket_name: str) -> Optional[sqlite3.Row]:
     """สถิติ 'คะแนน' (achieved_value) ของบั้งไฟ: เฉลี่ย/สูงสุด/ต่ำสุด และเฉลี่ย 5 นัดล่าสุด
     คืน None ถ้าไม่มีค่า achieved_value เลย"""

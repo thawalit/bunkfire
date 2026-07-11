@@ -1,9 +1,15 @@
 import sqlite3
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from typing import Optional
 
 import config
-from db.repository import get_rocket_last_results, get_rocket_score_stats, get_rocket_stats
+from db.repository import (
+    get_distinct_rocket_names,
+    get_rocket_last_results,
+    get_rocket_score_stats,
+    get_rocket_stats,
+)
 
 # แปลงผลการแข่ง (outcome) เป็นคำไทยที่ผู้ใช้คุ้น — เสมอตัวถือเป็นฝั่งไม่ชนะตามกติกาของแอป
 _OUTCOME_TH = {"win": "ผ่าน", "loss": "ไม่ผ่าน", "tie": "เสมอ"}
@@ -26,21 +32,63 @@ class RocketScoreResult:
     low_score: Optional[int] = None
     last5_avg: Optional[float] = None
     last5_results: Optional[str] = None
+    matched_name: Optional[str] = None  # ชื่อในฐานข้อมูลที่จับคู่ได้ (ตั้งเมื่อ match แบบใกล้เคียงเท่านั้น)
+    match_score: Optional[float] = None  # ความคล้าย 0-1 ของการจับคู่ใกล้เคียง
 
 
 def normalize_name(name: str) -> str:
     return name.strip()
 
 
-def score_rocket(name: str, conn: sqlite3.Connection, threshold: float = config.PASS_THRESHOLD) -> RocketScoreResult:
-    row = get_rocket_stats(conn, name)
+def find_closest_name(
+    name: str, candidates: list[str], threshold: float = config.FUZZY_MATCH_THRESHOLD
+) -> Optional[tuple[str, float]]:
+    """หาชื่อในฐานข้อมูลที่คล้าย name ที่สุด (difflib ratio) คืน (ชื่อ, คะแนน) ถ้า >= threshold
+    ใช้จับชื่อที่ Vision อ่านเพี้ยน เช่น "ฟาโรเบิร์ตฟา" -> "ฟาโรเบิกฟ้า" """
+    name = name.strip()
+    if not name:
+        return None
+    best_score, best_name = 0.0, None
+    for cand in candidates:
+        # ข้ามชื่อที่ความยาวต่างกันมาก (เช่นพิมพ์คำสั้นๆ ที่บังเอิญเป็นส่วนหนึ่งของชื่อยาว)
+        # การสะกดเพี้ยนจริงความยาวจะใกล้เคียงกัน — กันจับคู่แบบตัดคำ/ตรงบางส่วน
+        if min(len(name), len(cand)) / max(len(name), len(cand)) < 0.6:
+            continue
+        s = SequenceMatcher(None, name, cand).ratio()
+        if s > best_score:
+            best_score, best_name = s, cand
+    if best_name is not None and best_score >= threshold:
+        return best_name, best_score
+    return None
+
+
+def score_rocket(
+    name: str,
+    conn: sqlite3.Connection,
+    threshold: float = config.PASS_THRESHOLD,
+    candidate_names: Optional[list[str]] = None,
+) -> RocketScoreResult:
+    query = normalize_name(name)
+    row = get_rocket_stats(conn, query)
+    matched_name: Optional[str] = None
+    match_score: Optional[float] = None
+    if row is None:
+        # ไม่พบชื่อตรงเป๊ะ -> ลองจับคู่ชื่อใกล้เคียง (กรณีสะกดเพี้ยน/Vision อ่านผิด)
+        if candidate_names is None:
+            candidate_names = get_distinct_rocket_names(conn)
+        hit = find_closest_name(query, candidate_names)
+        if hit is not None:
+            matched_name, match_score = hit
+            row = get_rocket_stats(conn, matched_name)
     if row is None:
         return RocketScoreResult(name=name, found=False)
+    # ชื่อที่ใช้ดึงสถิติต่อจากนี้: ถ้าจับคู่ใกล้เคียงให้ใช้ชื่อในฐานข้อมูล ไม่ใช่ชื่อที่พิมพ์มา
+    lookup = matched_name or query
     win_rate = row["win_rate"]
-    score_stats = get_rocket_score_stats(conn, name) or {}
+    score_stats = get_rocket_score_stats(conn, lookup) or {}
     avg_score = score_stats.get("avg_score")
     last5_avg = score_stats.get("last5_avg")
-    last_rows = get_rocket_last_results(conn, name)
+    last_rows = get_rocket_last_results(conn, lookup)
     last5_results = ", ".join(
         f"{r['achieved_value']}({_OUTCOME_TH.get(r['outcome'], r['outcome'])})" for r in last_rows
     ) or None
@@ -60,10 +108,14 @@ def score_rocket(name: str, conn: sqlite3.Connection, threshold: float = config.
         low_score=score_stats.get("low_score"),
         last5_avg=round(last5_avg, 1) if last5_avg is not None else None,
         last5_results=last5_results,
+        matched_name=matched_name,
+        match_score=round(match_score, 2) if match_score is not None else None,
     )
 
 
 def score_rocket_list(
     names: list[str], conn: sqlite3.Connection, threshold: float = config.PASS_THRESHOLD
 ) -> list[RocketScoreResult]:
-    return [score_rocket(name, conn, threshold) for name in names]
+    # ดึงรายชื่อผู้สมัครจับคู่ครั้งเดียว แล้วใช้ซ้ำทุกชื่อ (เลี่ยงคิวรีซ้ำในลูป)
+    candidate_names = get_distinct_rocket_names(conn)
+    return [score_rocket(name, conn, threshold, candidate_names) for name in names]

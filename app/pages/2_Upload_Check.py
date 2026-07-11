@@ -76,9 +76,22 @@ elif manual_text.strip():
 
 if names:
     results = score_rocket_list(names, conn)
+
+    def _found_label(r):
+        if not r.found:
+            return "ไม่พบ"
+        return "ใกล้เคียง" if r.matched_name else "พบ"
+
+    def _matched_label(r):
+        # โชว์ชื่อในฐานข้อมูลที่จับคู่ได้ + %ความคล้าย เฉพาะกรณีสะกดเพี้ยน (match ใกล้เคียง)
+        if r.matched_name and r.match_score is not None:
+            return f"{r.matched_name} ({r.match_score * 100:.0f}%)"
+        return ""
+
     df_out = pd.DataFrame([{
         "ชื่อที่อัปโหลด": r.name,
-        "พบข้อมูล": "พบ" if r.found else "ไม่พบ",
+        "พบข้อมูล": _found_label(r),
+        "จับคู่กับ (ชื่อเพี้ยน)": _matched_label(r),
         "จำนวนแข่ง": r.races,
         "ชนะ": r.wins,
         "แพ้": r.losses,

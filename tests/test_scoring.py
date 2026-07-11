@@ -65,3 +65,25 @@ def test_score_rocket_list_preserves_order_and_duplicates(conn):
     results = score_rocket_list(names, conn)
     assert [r.name for r in results] == names
     assert [r.verdict for r in results] == ["ไม่ผ่าน", "ผ่าน", "ไม่ผ่าน", "ไม่มีข้อมูล"]
+
+
+def test_fuzzy_match_misspelled_name(conn):
+    # สะกดเพี้ยน "เสมียนศิล" (ตก ป์) ต้องจับคู่กับ "เสมียนศิลป์" และใช้สถิติของตัวจริง
+    result = score_rocket("เสมียนศิลป์์", conn)  # เกินมา 1 ตัว
+    assert result.found is True
+    assert result.matched_name == "เสมียนศิลป์"
+    assert result.match_score is not None and result.match_score >= 0.7
+    assert result.races == 3  # สถิติมาจากชื่อจริง ไม่ใช่ชื่อที่พิมพ์เพี้ยน
+    assert result.name == "เสมียนศิลป์์"  # ชื่อที่อัปโหลดยังเก็บไว้ตามเดิม
+
+
+def test_exact_match_sets_no_matched_name(conn):
+    result = score_rocket("เสมียนศิลป์", conn)
+    assert result.found is True
+    assert result.matched_name is None  # ตรงเป๊ะ ไม่ต้องโชว์ว่าเป็นการจับคู่ใกล้เคียง
+    assert result.match_score is None
+
+
+def test_truncated_name_not_fuzzy_matched(conn):
+    # คำสั้นที่เป็นแค่ส่วนหนึ่งของชื่อยาว ไม่ควรถูกจับคู่ (ความยาวต่างกันมาก)
+    assert score_rocket("เสมียน", conn).found is False
