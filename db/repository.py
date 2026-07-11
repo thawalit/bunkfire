@@ -196,9 +196,13 @@ def get_rocket_score_stats(conn: sqlite3.Connection, rocket_name: str) -> Option
     }
 
 
+# แปลงผลการแข่ง (outcome) เป็นคำไทย — ต่อท้ายคะแนนใน "3 นัดล่าสุด" เช่น 430(ผ่าน)
+_OUTCOME_TH = {"win": "ผ่าน", "loss": "ไม่ผ่าน", "tie": "เสมอ"}
+
+
 def get_all_rocket_score_summary(conn: sqlite3.Connection) -> dict[str, dict]:
     """สรุป 'คะแนน' ของบั้งไฟทุกตัวในคิวรีเดียว (ไว้โชว์หน้า Dashboard)
-    คืน dict: rocket_name_normalized -> {'avg_score': float|None, 'last3': 'คะแนน, คะแนน, คะแนน'|None}
+    คืน dict: rocket_name_normalized -> {'avg_score': float|None, 'last3': '430(ผ่าน), 360(เสมอ)'|None}
     """
     summary: dict[str, dict] = {}
     for r in conn.execute(
@@ -210,18 +214,18 @@ def get_all_rocket_score_summary(conn: sqlite3.Connection) -> dict[str, dict]:
 
     last: dict[str, list] = {}
     for r in conn.execute(
-        "SELECT nm, av FROM ("
-        "  SELECT rr.rocket_name_normalized nm, rr.achieved_value av, "
+        "SELECT nm, av, oc FROM ("
+        "  SELECT rr.rocket_name_normalized nm, rr.achieved_value av, rr.outcome oc, "
         "         ROW_NUMBER() OVER (PARTITION BY rr.rocket_name_normalized "
         "                            ORDER BY e.event_date DESC, rr.id DESC) rn "
         "  FROM rocket_results rr JOIN events e ON rr.event_id = e.id "
         "  WHERE rr.achieved_value IS NOT NULL"
         ") WHERE rn <= 3 ORDER BY nm, rn"
     ):
-        last.setdefault(r["nm"], []).append(r["av"])
-    for nm, scores in last.items():
+        last.setdefault(r["nm"], []).append(f"{r['av']}({_OUTCOME_TH.get(r['oc'], r['oc'])})")
+    for nm, results in last.items():
         if nm in summary:
-            summary[nm]["last3"] = ", ".join(str(s) for s in scores)
+            summary[nm]["last3"] = ", ".join(results)
     return summary
 
 
