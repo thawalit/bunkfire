@@ -26,15 +26,19 @@ st.caption(
 )
 
 conn = get_db()
-posts_count = conn.execute("SELECT COUNT(*) c FROM posts WHERE status = 'vision_processed'").fetchone()["c"]
-events_count = conn.execute("SELECT COUNT(*) c FROM events").fetchone()["c"]
+boards_count = conn.execute("SELECT COUNT(*) c FROM posts WHERE status = 'vision_processed'").fetchone()["c"]
+images_read = conn.execute(
+    "SELECT COUNT(*) c FROM posts WHERE status IN ('vision_processed', 'not_result_board')"
+).fetchone()["c"]
 rockets_count = conn.execute("SELECT COUNT(DISTINCT rocket_name_normalized) c FROM rocket_results").fetchone()["c"]
 last_scrape = conn.execute("SELECT MAX(finished_at) t FROM scrape_runs").fetchone()["t"]
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("บั้งไฟที่มีข้อมูล", rockets_count)
-col2.metric("งานที่ประมวลผลแล้ว", events_count)
-col3.metric("โพสต์ที่ประมวลผลแล้ว", posts_count)
+# ตารางผล = โพสต์ที่ Vision จัดว่าเป็นตารางแข่งจริง (1 ตาราง = 1 event) — ต่างจาก "รูปที่อ่านทั้งหมด"
+# ซึ่งรวมรูปที่อ่านแล้วแต่ไม่ใช่ตารางผล (โปรโมท/รูปเดี่ยว/ประกาศ) ด้วย
+col2.metric("ตารางผลที่เจอ", boards_count, help="โพสต์ที่ Claude Vision จัดว่าเป็นตารางผลการแข่งขันจริง")
+col3.metric("รูปที่อ่านทั้งหมด", images_read, help="รูปที่ผ่าน Vision แล้ว = ตารางผล + รูปที่ไม่ใช่ตารางผล")
 col4.metric("Scrape ล่าสุด", last_scrape or "ยังไม่เคยรัน")
 
 st.info("เลือกหน้าจากเมนูด้านซ้าย: Dashboard, Upload & Check, Audit")
