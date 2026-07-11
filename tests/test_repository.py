@@ -52,11 +52,12 @@ def test_insert_rocket_results_computes_band_and_flags_mismatch(conn):
             "outcome_icon": "win", "is_champion": False,
         },
         {
-            # จงใจให้ icon กับตัวเลขไม่ตรงกัน เพื่อทดสอบ outcome_mismatch
+            # จงใจให้ icon ขัดกับตัวเลขแบบที่ไม่มีหลักร้อยไหนอธิบายได้ (แถบกว้างแค่ 5 คือ x80-x85
+            # ไม่มี base ที่ทำให้ 430 อยู่ในแถบ) เพื่อทดสอบว่า outcome_mismatch ยังจับได้
             "rocket_name": "ตัวทดสอบ",
-            "metric_a": 30, "metric_b": 55,
+            "metric_a": 80, "metric_b": 85,
             "achieved_raw": "430", "achieved_value": 430,
-            "outcome_icon": "loss", "is_champion": False,
+            "outcome_icon": "tie", "is_champion": False,
         },
         {
             "rocket_name": "พงษ์เจริญ",
@@ -75,7 +76,7 @@ def test_insert_rocket_results_computes_band_and_flags_mismatch(conn):
     mismatches = get_mismatched_results(conn)
     assert len(mismatches) == 1
     assert mismatches[0]["rocket_name_raw"] == "ตัวทดสอบ"
-    assert mismatches[0]["outcome"] == "loss"  # ยึดตาม icon เสมอ แม้ตัวเลขจะบอกว่า win
+    assert mismatches[0]["outcome"] == "tie"  # ยึดตาม icon เสมอ แม้ตัวเลขจะขัดกัน
 
 
 def test_win_rate_counts_ties_as_non_win(conn):

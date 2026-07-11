@@ -3,7 +3,7 @@ import sqlite3
 from typing import Iterable, Optional
 
 import config
-from vision.band_rule import compute_tie_band, classify
+from vision.band_rule import classify, infer_tie_band
 
 
 def upsert_post(
@@ -120,7 +120,10 @@ def insert_rocket_results(
         tie_band_low = tie_band_high = computed_outcome = None
         outcome_mismatch = False
         if metric_a is not None and metric_b is not None:
-            tie_band_low, tie_band_high = compute_tie_band(metric_a, metric_b, base_hundred)
+            # เลือก base หลักร้อยที่ทำให้แถบราคาตรงกับไอคอนสีในภาพ (ไอคอน = ความจริง)
+            _, tie_band_low, tie_band_high = infer_tie_band(
+                metric_a, metric_b, achieved_value, outcome_icon, base_hundred
+            )
             computed_outcome = classify(achieved_value, tie_band_low, tie_band_high)
             outcome_mismatch = computed_outcome != outcome_icon
 
