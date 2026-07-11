@@ -28,7 +28,12 @@ gh repo create bunkfire --public --source=. --remote=origin --push
 - **Repository**: `<user>/bunkfire`
 - **Branch**: `main`
 - **Main file path**: `app/streamlit_app.py`
+- **Advanced settings → Python version: 3.13** ⚠️ สำคัญ — อย่าปล่อยเป็น 3.14
+  (Python 3.14 ทำให้ pandas/pyarrow ที่ Streamlit ใช้ render ตาราง **segfault** ตอนบูต/รีเฟรช)
 - กด **Deploy**
+
+> หมายเหตุ: Streamlit Cloud อ่านเวอร์ชัน Python จาก Advanced settings เท่านั้น **ไม่อ่านไฟล์ `.python-version`**
+> และ **Reboot ไม่เปลี่ยนเวอร์ชัน** (reuse venv เดิม) — ถ้าเผลอ deploy ด้วย 3.14 ไปแล้วต้อง **Delete app แล้ว deploy ใหม่** ให้เลือก 3.13
 
 ### 4. เสร็จ
 Cloud จะติดตั้งจาก `requirements.txt` (streamlit, pandas, python-dotenv) แล้วเปิดแอปที่
