@@ -3,7 +3,10 @@ from dataclasses import dataclass
 from typing import Optional
 
 import config
-from db.repository import get_rocket_score_stats, get_rocket_stats
+from db.repository import get_rocket_last_results, get_rocket_score_stats, get_rocket_stats
+
+# แปลงผลการแข่ง (outcome) เป็นคำไทยที่ผู้ใช้คุ้น — เสมอตัวถือเป็นฝั่งไม่ชนะตามกติกาของแอป
+_OUTCOME_TH = {"win": "ผ่าน", "loss": "ไม่ผ่าน", "tie": "เสมอ"}
 
 
 @dataclass
@@ -22,6 +25,7 @@ class RocketScoreResult:
     top_score: Optional[int] = None
     low_score: Optional[int] = None
     last5_avg: Optional[float] = None
+    last5_results: Optional[str] = None
 
 
 def normalize_name(name: str) -> str:
@@ -36,6 +40,10 @@ def score_rocket(name: str, conn: sqlite3.Connection, threshold: float = config.
     score_stats = get_rocket_score_stats(conn, name) or {}
     avg_score = score_stats.get("avg_score")
     last5_avg = score_stats.get("last5_avg")
+    last_rows = get_rocket_last_results(conn, name)
+    last5_results = ", ".join(
+        f"{r['achieved_value']}({_OUTCOME_TH.get(r['outcome'], r['outcome'])})" for r in last_rows
+    ) or None
     return RocketScoreResult(
         name=name,
         found=True,
@@ -51,6 +59,7 @@ def score_rocket(name: str, conn: sqlite3.Connection, threshold: float = config.
         top_score=score_stats.get("top_score"),
         low_score=score_stats.get("low_score"),
         last5_avg=round(last5_avg, 1) if last5_avg is not None else None,
+        last5_results=last5_results,
     )
 
 

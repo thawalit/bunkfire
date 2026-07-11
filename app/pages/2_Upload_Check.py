@@ -88,6 +88,7 @@ if names:
         "คะแนนสูงสุด": r.top_score,
         "คะแนนต่ำสุด": r.low_score,
         "เฉลี่ย 5 นัดล่าสุด": r.last5_avg,
+        "ผล 5 นัดล่าสุด": r.last5_results,
         "แชมป์": r.championships,
         "ผลทำนาย": r.verdict,
     } for r in results])

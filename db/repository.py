@@ -193,6 +193,19 @@ def get_rocket_score_stats(conn: sqlite3.Connection, rocket_name: str) -> Option
     }
 
 
+def get_rocket_last_results(
+    conn: sqlite3.Connection, rocket_name: str, limit: int = 5
+) -> list[sqlite3.Row]:
+    """ผลจริง N นัดล่าสุด (ใหม่ไปเก่า) — คืน achieved_value + outcome ต่อแถว"""
+    return conn.execute(
+        "SELECT rr.achieved_value, rr.outcome FROM rocket_results rr "
+        "JOIN events e ON rr.event_id = e.id "
+        "WHERE rr.rocket_name_normalized = ? AND rr.achieved_value IS NOT NULL "
+        "ORDER BY e.event_date DESC, rr.id DESC LIMIT ?",
+        (rocket_name.strip(), limit),
+    ).fetchall()
+
+
 def get_mismatched_results(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute(
         "SELECT * FROM rocket_results WHERE outcome_mismatch = 1 ORDER BY created_at DESC"
