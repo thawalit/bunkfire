@@ -165,6 +165,34 @@ def get_all_rocket_stats(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT * FROM v_rocket_stats ORDER BY win_rate DESC, races DESC").fetchall()
 
 
+def get_rocket_score_stats(conn: sqlite3.Connection, rocket_name: str) -> Optional[sqlite3.Row]:
+    """สถิติ 'คะแนน' (achieved_value) ของบั้งไฟ: เฉลี่ย/สูงสุด/ต่ำสุด และเฉลี่ย 5 นัดล่าสุด
+    คืน None ถ้าไม่มีค่า achieved_value เลย"""
+    name = rocket_name.strip()
+    overall = conn.execute(
+        "SELECT COUNT(achieved_value) n, AVG(achieved_value) avg_score, "
+        "MAX(achieved_value) top_score, MIN(achieved_value) low_score "
+        "FROM rocket_results WHERE rocket_name_normalized = ? AND achieved_value IS NOT NULL",
+        (name,),
+    ).fetchone()
+    if overall is None or overall["n"] == 0:
+        return None
+    last5 = conn.execute(
+        "SELECT AVG(achieved_value) last5_avg FROM ("
+        "  SELECT rr.achieved_value FROM rocket_results rr JOIN events e ON rr.event_id = e.id"
+        "  WHERE rr.rocket_name_normalized = ? AND rr.achieved_value IS NOT NULL"
+        "  ORDER BY e.event_date DESC, rr.id DESC LIMIT 5"
+        ")",
+        (name,),
+    ).fetchone()
+    return {
+        "avg_score": overall["avg_score"],
+        "top_score": overall["top_score"],
+        "low_score": overall["low_score"],
+        "last5_avg": last5["last5_avg"] if last5 else None,
+    }
+
+
 def get_mismatched_results(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute(
         "SELECT * FROM rocket_results WHERE outcome_mismatch = 1 ORDER BY created_at DESC"

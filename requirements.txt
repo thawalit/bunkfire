@@ -1,6 +1,8 @@
-# Dependencies สำหรับ Streamlit Community Cloud (เฉพาะ web viewer)
-# หมายเหตุ: scraper (playwright) และ vision (anthropic) เป็นเครื่องมือฝั่ง local เท่านั้น
-# ไม่ต้องติดตั้งบน Cloud เพราะ web app อ่านข้อมูลจาก SQLite อย่างเดียว ไม่เรียก browser/API
+# Dependencies สำหรับ Streamlit Community Cloud
+# web viewer (Dashboard/Audit) + ฟีเจอร์ทำนายจากรูปในหน้า Upload & Check (ใช้ Claude Vision)
+# หมายเหตุ: scraper (playwright) ยังเป็นเครื่องมือฝั่ง local เท่านั้น ไม่ต้องติดตั้งบน Cloud
 streamlit>=1.38.0
 pandas>=2.2.0
 python-dotenv>=1.0.0
+anthropic>=0.40.0
+pydantic>=2.8.0

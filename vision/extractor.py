@@ -1,11 +1,24 @@
 import base64
 
 import anthropic
+from pydantic import BaseModel
 
 import config
 from vision.image_utils import guess_media_type
 from vision.prompts import SYSTEM_PROMPT
 from vision.schema import ExtractionResult
+
+
+class RocketNames(BaseModel):
+    rocket_names: list[str]
+
+
+NAMES_ONLY_PROMPT = (
+    "รูปนี้เป็นตารางรายชื่อบั้งไฟที่จะแข่ง (อาจยังไม่มีผลการแข่งขัน) "
+    "อ่านเฉพาะ 'ชื่อบั้งไฟ' ในแต่ละแถวออกมาเป็นรายการเรียงตามลำดับในรูป "
+    "เอาเฉพาะชื่อบั้งไฟเท่านั้น ไม่ต้องอ่านตัวเลข เกณฑ์ หรือผลแพ้ชนะ "
+    "รักษาตัวสะกดภาษาไทยให้ตรงกับในรูปทุกตัวอักษร ห้ามเดา/เติมชื่อที่ไม่มีในรูป"
+)
 
 _client: anthropic.Anthropic | None = None
 
@@ -48,3 +61,29 @@ def extract_from_path(path, model: str = config.VISION_MODEL) -> ExtractionResul
 
     p = Path(path)
     return extract(p.read_bytes(), media_type=guess_media_type(p), model=model)
+
+
+def extract_rocket_names(
+    image_bytes: bytes, media_type: str = "image/jpeg", model: str = config.VISION_MODEL
+) -> list[str]:
+    """อ่านเฉพาะ 'ชื่อบั้งไฟ' จากรูปตารางแข่ง — ใช้กับตารางที่ยังไม่มีผลเพื่อเอาไปทำนาย"""
+    image_b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
+    client = _get_client()
+    response = client.messages.parse(
+        model=model,
+        max_tokens=2048,
+        system=NAMES_ONLY_PROMPT,
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": media_type, "data": image_b64},
+                },
+                {"type": "text", "text": "อ่านชื่อบั้งไฟทุกแถวจากรูปนี้"},
+            ],
+        }],
+        output_format=RocketNames,
+    )
+    # ตัดชื่อว่าง/ช่องว่างเกินออก และคงลำดับเดิม
+    return [n.strip() for n in response.parsed_output.rocket_names if n and n.strip()]

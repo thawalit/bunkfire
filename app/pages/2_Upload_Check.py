@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 import config  # noqa: E402
 from db.connection import get_connection, init_db  # noqa: E402
 from stats.scoring import score_rocket_list  # noqa: E402
+from vision.extractor import extract_rocket_names  # noqa: E402
 
 st.set_page_config(page_title="Upload & Check", page_icon="📋", layout="wide")
 
@@ -21,6 +22,12 @@ def get_db():
     return conn
 
 
+@st.cache_data(show_spinner=False)
+def _names_from_image(image_bytes: bytes, media_type: str) -> list[str]:
+    # cache ตาม bytes ของรูป → รูปเดิมจะไม่เรียก Claude Vision ซ้ำเมื่อ Streamlit rerun
+    return extract_rocket_names(image_bytes, media_type=media_type)
+
+
 st.title("📋 อัปโหลดรายชื่อบั้งไฟ เพื่อเช็คผ่าน/ไม่ผ่าน")
 st.caption(
     f"ทำนายจากอัตราชนะในอดีต — เกณฑ์ผ่านปัจจุบัน: win rate ≥ {config.PASS_THRESHOLD * 100:.0f}% "
@@ -30,10 +37,34 @@ st.caption(
 conn = get_db()
 
 names: list[str] = []
+
+st.subheader("📷 อัปโหลดรูปตารางแข่ง (ยังไม่มีผลก็ได้)")
+st.caption("ระบบจะให้ Claude Vision อ่าน 'ชื่อบั้งไฟ' จากรูป แล้วทำนายผ่าน/ไม่ผ่านจากสถิติในอดีต")
+img_file = st.file_uploader("อัปโหลดรูป (.jpg / .png)", type=["jpg", "jpeg", "png"])
+
+st.subheader("⌨️ หรือใส่รายชื่อเอง")
 uploaded = st.file_uploader("อัปโหลดไฟล์ .csv หรือ .txt (1 ชื่อต่อบรรทัด)", type=["csv", "txt"])
 manual_text = st.text_area("หรือพิมพ์/วางรายชื่อที่นี่ (1 ชื่อต่อบรรทัด)")
 
-if uploaded is not None:
+if img_file is not None:
+    col_img, col_names = st.columns([1, 1])
+    with col_img:
+        st.image(img_file, caption="รูปที่อัปโหลด", use_container_width=True)
+    with col_names:
+        try:
+            with st.spinner("กำลังอ่านชื่อบั้งไฟจากรูปด้วย Claude Vision..."):
+                names = _names_from_image(img_file.getvalue(), img_file.type or "image/jpeg")
+            st.success(f"อ่านชื่อบั้งไฟได้ {len(names)} รายการ")
+            # ให้ผู้ใช้ตรวจ/แก้ชื่อที่ Vision อ่านผิดก่อนทำนาย
+            edited = st.text_area("ตรวจ/แก้ชื่อก่อนทำนาย (1 ชื่อต่อบรรทัด)", value="\n".join(names), height=300)
+            names = [line for line in edited.splitlines() if line.strip()]
+        except Exception as e:
+            names = []
+            st.error(
+                "อ่านรูปไม่สำเร็จ — ตรวจว่าตั้งค่า ANTHROPIC_API_KEY แล้ว "
+                f"(บน Streamlit Cloud ต้องเพิ่มใน Secrets)\n\nรายละเอียด: {e}"
+            )
+elif uploaded is not None:
     raw = uploaded.read().decode("utf-8-sig")
     if uploaded.name.endswith(".csv"):
         df_in = pd.read_csv(io.StringIO(raw), header=None)
@@ -53,7 +84,10 @@ if names:
         "แพ้": r.losses,
         "เสมอตัว": r.ties,
         "อัตราชนะ (%)": round(r.win_rate * 100, 1) if r.win_rate is not None else None,
-        "คะแนน": r.score,
+        "คะแนนเฉลี่ย": r.avg_score,
+        "คะแนนสูงสุด": r.top_score,
+        "คะแนนต่ำสุด": r.low_score,
+        "เฉลี่ย 5 นัดล่าสุด": r.last5_avg,
         "แชมป์": r.championships,
         "ผลทำนาย": r.verdict,
     } for r in results])
@@ -65,6 +99,11 @@ if names:
     st.dataframe(
         df_out.style.map(_verdict_color, subset=["ผลทำนาย"]),
         use_container_width=True, hide_index=True,
+        column_config={
+            "อัตราชนะ (%)": st.column_config.NumberColumn(format="%.1f"),
+            "คะแนนเฉลี่ย": st.column_config.NumberColumn(format="%.1f"),
+            "เฉลี่ย 5 นัดล่าสุด": st.column_config.NumberColumn(format="%.1f"),
+        },
     )
     st.download_button(
         "ดาวน์โหลดผลเป็น CSV",
