@@ -1,8 +1,14 @@
 # Dependencies สำหรับ Streamlit Community Cloud
 # web viewer (Dashboard/Audit) + ฟีเจอร์ทำนายจากรูปในหน้า Upload & Check (ใช้ Claude Vision)
 # หมายเหตุ: scraper (playwright) ยังเป็นเครื่องมือฝั่ง local เท่านั้น ไม่ต้องติดตั้งบน Cloud
-streamlit>=1.38.0
-pandas>=2.2.0
+#
+# ⚠️ ต้องตรึงเวอร์ชัน pandas/numpy/pyarrow ไว้ต่ำกว่าตัวล่าสุด — combo pandas 3.0 / numpy 2.5 /
+# pyarrow 25 มี ABI ชนกันทำให้ Streamlit "Segmentation fault" ตอน import ตอน boot (บน Cloud)
+# ชุดที่ตรึงไว้นี้คือเวอร์ชันที่ทดสอบแล้วรันได้จริง
+streamlit>=1.38.0,<1.60
+pandas>=2.2.0,<3.0
+numpy>=2.0,<2.3
+pyarrow>=16,<25
 python-dotenv>=1.0.0
 anthropic>=0.40.0
 pydantic>=2.8.0
