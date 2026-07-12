@@ -1,9 +1,14 @@
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+# โหลดไฟล์ .env เฉพาะตอนรัน local — บน Streamlit Cloud ไม่มี .env (secrets มาทาง env vars)
+# และบางครั้ง python-dotenv ไม่ถูกติดตั้ง จึงทำให้ optional ไม่ให้แอปพังตอน import
+try:
+    from dotenv import load_dotenv
 
-load_dotenv()
+    load_dotenv()
+except ModuleNotFoundError:
+    pass
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
