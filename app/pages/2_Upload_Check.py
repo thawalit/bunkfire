@@ -49,7 +49,7 @@ manual_text = st.text_area("หรือพิมพ์/วางรายชื
 if img_file is not None:
     col_img, col_names = st.columns([1, 1])
     with col_img:
-        st.image(img_file, caption="รูปที่อัปโหลด", use_container_width=True)
+        st.image(img_file, caption="รูปที่อัปโหลด", width="stretch")
     with col_names:
         try:
             with st.spinner("กำลังอ่านชื่อบั้งไฟจากรูปด้วย Claude Vision..."):
@@ -112,7 +112,7 @@ if names:
 
     st.dataframe(
         df_out.style.map(_verdict_color, subset=["ผลทำนาย"]),
-        use_container_width=True, hide_index=True,
+        width="stretch", hide_index=True,
         column_config={
             "อัตราชนะ (%)": st.column_config.NumberColumn(format="%.1f"),
             "คะแนนเฉลี่ย": st.column_config.NumberColumn(format="%.1f"),

@@ -54,7 +54,7 @@ for post in posts:
             # จึงหาไม่เจอบน Streamlit Cloud) — รูปถูก commit ไว้ใน data/images/<fb_post_id>.jpg
             img_path = config.IMAGES_DIR / f"{post['fb_post_id']}.jpg"
             if img_path.exists():
-                st.image(str(img_path), use_container_width=True)
+                st.image(str(img_path), width="stretch")
             else:
                 st.warning("ไม่พบไฟล์รูป (ยังไม่ได้ commit รูปนี้ขึ้น repo)")
         with col2:

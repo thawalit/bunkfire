@@ -68,7 +68,7 @@ else:
         "avg_score": "คะแนนเฉลี่ย", "last3": "3 นัดล่าสุด", "championships": "แชมป์",
     })
     st.dataframe(
-        display_df, use_container_width=True, hide_index=True,
+        display_df, width="stretch", hide_index=True,
         column_config={
             "อัตราชนะ (%)": st.column_config.NumberColumn(format="%.1f"),
             "คะแนนเฉลี่ย": st.column_config.NumberColumn(format="%.1f"),
