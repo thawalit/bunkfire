@@ -1,12 +1,15 @@
 import base64
 
-import anthropic
 from pydantic import BaseModel
 
 import config
 from vision.image_utils import guess_media_type
 from vision.prompts import SYSTEM_PROMPT
 from vision.schema import ExtractionResult
+
+# หมายเหตุ: import anthropic แบบ lazy (ในฟังก์ชัน) ไม่ใช่ระดับโมดูล — หน้า Upload & Check
+# ต้อง import โมดูลนี้เพื่อใช้ฟีเจอร์ "วางรายชื่อ -> ทำนาย" ซึ่งไม่ต้องใช้ anthropic
+# ถ้า anthropic ไม่พร้อม (เช่นไม่ได้ติดตั้ง) หน้าเว็บส่วนที่เหลือต้องยังทำงานได้
 
 
 class RocketNames(BaseModel):
@@ -20,12 +23,14 @@ NAMES_ONLY_PROMPT = (
     "รักษาตัวสะกดภาษาไทยให้ตรงกับในรูปทุกตัวอักษร ห้ามเดา/เติมชื่อที่ไม่มีในรูป"
 )
 
-_client: anthropic.Anthropic | None = None
+_client = None
 
 
-def _get_client() -> anthropic.Anthropic:
+def _get_client():
     global _client
     if _client is None:
+        import anthropic  # lazy: โหลดเฉพาะตอนเรียกใช้ Vision จริง
+
         _client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY or None)
     return _client
 
