@@ -105,17 +105,27 @@ def extract_pending():
     click.echo(f"พบ {len(pending)} โพสต์ที่รอประมวลผล")
 
     for post in pending:
-        if not post["image_url"]:
-            mark_post_status(conn, post["id"], "error", error_message="ไม่มี image_url")
-            continue
+        image_dir = config.IMAGES_DIR
+        image_dir.mkdir(parents=True, exist_ok=True)
+        image_path = image_dir / f"{post['fb_post_id']}.jpg"
 
-        try:
-            resp = requests.get(post["image_url"], timeout=30)
-            resp.raise_for_status()
-            image_bytes = resp.content
-        except Exception as e:
-            mark_post_status(conn, post["id"], "error", error_message=str(e))
-            continue
+        # ใช้รูปที่เคยโหลดเก็บไว้ก่อนเสมอ — URL ของ Facebook CDN มีอายุสั้น พอรันซ้ำทีหลัง
+        # (เช่นหลังโดน rate limit / เครดิตหมด) จะโหลดไม่ได้อีกแล้ว (403 Forbidden)
+        downloaded = False
+        if image_path.exists():
+            image_bytes = image_path.read_bytes()
+        else:
+            if not post["image_url"]:
+                mark_post_status(conn, post["id"], "error", error_message="ไม่มี image_url")
+                continue
+            try:
+                resp = requests.get(post["image_url"], timeout=30)
+                resp.raise_for_status()
+                image_bytes = resp.content
+                downloaded = True
+            except Exception as e:
+                mark_post_status(conn, post["id"], "error", error_message=str(e))
+                continue
 
         image_sha256 = hashlib.sha256(image_bytes).hexdigest()
         cached = find_post_by_image_sha256(conn, image_sha256)
@@ -124,10 +134,8 @@ def extract_pending():
             click.echo(f"post {post['id']}: รูปซ้ำกับ post {cached['id']} ข้าม Vision call")
             continue
 
-        image_dir = config.IMAGES_DIR
-        image_dir.mkdir(parents=True, exist_ok=True)
-        image_path = image_dir / f"{post['fb_post_id']}.jpg"
-        image_path.write_bytes(image_bytes)
+        if downloaded:
+            image_path.write_bytes(image_bytes)
 
         try:
             result = extract(image_bytes)
