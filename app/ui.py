@@ -13,10 +13,14 @@ MOBILE_BREAKPOINT = 640
 
 _CSS = f"""
 <style>
+/* ---------- ซ่อน header ของ Streamlit (ปุ่ม Share/แก้ไข/GitHub) — กินที่บนจอเปล่าๆ
+   การไปหน้าอื่นใช้เมนูลัดบนหน้าแทน sidebar อยู่แล้ว ---------- */
+header[data-testid="stHeader"] {{ display: none !important; }}
+.block-container {{ padding-top: 1.5rem !important; }}
+
 /* ---------- ทั่วไป: ลดขอบ/ระยะห่างบนจอเล็ก ให้เนื้อหาได้พื้นที่เต็ม ---------- */
 @media (max-width: {MOBILE_BREAKPOINT}px) {{
-  /* เว้นด้านบนให้พ้น header bar ของ Streamlit (ไม่งั้นชื่อหน้าถูกบัง) */
-  .block-container {{ padding: 4.5rem 0.75rem 3rem !important; }}
+  .block-container {{ padding: 1rem 0.75rem 3rem !important; }}
   h1 {{ font-size: 1.35rem !important; line-height: 1.35 !important; }}
   h2 {{ font-size: 1.15rem !important; }}
   h3 {{ font-size: 1.02rem !important; }}
