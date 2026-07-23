@@ -7,11 +7,12 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import config  # noqa: E402
+from app import ui  # noqa: E402
 from db.connection import get_connection, init_db  # noqa: E402
 from db.repository import get_all_rocket_score_summary, get_all_rocket_stats  # noqa: E402
 from stats.scoring import rank_name_matches  # noqa: E402
 
-st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
+ui.setup_page("Dashboard", "📊")
 
 
 @st.cache_resource
@@ -22,6 +23,7 @@ def get_db():
 
 
 st.title("📊 Dashboard — สถิติบั้งไฟทั้งหมด")
+ui.nav_links(current="สถิติ")
 
 conn = get_db()
 rows = get_all_rocket_stats(conn)
@@ -30,11 +32,12 @@ df = pd.DataFrame([dict(r) for r in rows])
 if df.empty:
     st.warning("ยังไม่มีข้อมูล — ต้องรัน `python cli.py scrape` และ `python cli.py extract-pending` ก่อน")
 else:
-    col1, col2 = st.columns([1, 2])
+    # ค้นหามาก่อน — เป็นสิ่งที่ผู้ใช้ทำบ่อยสุด (บนมือถือคอลัมน์จะซ้อนเป็นแนวตั้งตามลำดับนี้)
+    col1, col2 = st.columns([2, 1])
     with col1:
-        min_races = st.number_input("แสดงเฉพาะบั้งไฟที่แข่งอย่างน้อย (ครั้ง)", min_value=1, value=2, step=1)
+        search = st.text_input("ค้นหาชื่อบั้งไฟ", placeholder="พิมพ์บางส่วนของชื่อก็ได้ เช่น เจ้าพายุ")
     with col2:
-        search = st.text_input("ค้นหาชื่อบั้งไฟ")
+        min_races = st.number_input("แข่งอย่างน้อย (ครั้ง)", min_value=1, value=2, step=1)
 
     if search:
         # ค้นหาข้ามทุกตัว (ไม่ติดเงื่อนไข min_races) เพื่อให้เจอชื่อที่เจาะจงเสมอ แม้แข่งน้อยครั้ง
@@ -67,13 +70,32 @@ else:
         "ties": "เสมอตัว", "win_rate_pct": "อัตราชนะ (%)",
         "avg_score": "คะแนนเฉลี่ย", "last3": "3 นัดล่าสุด", "championships": "แชมป์",
     })
-    st.dataframe(
-        display_df, width="stretch", hide_index=True,
-        column_config={
-            "อัตราชนะ (%)": st.column_config.NumberColumn(format="%.1f"),
-            "คะแนนเฉลี่ย": st.column_config.NumberColumn(format="%.1f"),
-        },
-    )
+    # จอใหญ่: ตารางเต็ม / มือถือ: การ์ดอ่านง่ายไม่ต้องเลื่อนซ้ายขวา (CSS ใน app/ui.py เลือกให้เอง)
+    with st.container(key="wide_only"):
+        st.dataframe(
+            display_df, width="stretch", hide_index=True,
+            column_config={
+                "อัตราชนะ (%)": st.column_config.NumberColumn(format="%.1f"),
+                "คะแนนเฉลี่ย": st.column_config.NumberColumn(format="%.1f"),
+            },
+        )
+    with st.container(key="narrow_only"):
+        rows_all = display_df.to_dict("records")
+        cards = []
+        for row in ui.paged(rows_all, key="dash_cards"):
+            rate = row["อัตราชนะ (%)"]
+            badge = None
+            if pd.notna(rate):
+                badge = (f"ชนะ {rate:.0f}%", "bf-pass" if rate >= 50 else "bf-fail")
+            fields = [
+                ("แข่ง", row["แข่งทั้งหมด"]), ("ชนะ", row["ชนะ"]), ("แพ้", row["แพ้"]), ("เสมอ", row["เสมอตัว"]),
+                ("คะแนนเฉลี่ย", row["คะแนนเฉลี่ย"]), ("3 นัดล่าสุด", row["3 นัดล่าสุด"]),
+            ]
+            if row["แชมป์"]:
+                fields.append(("แชมป์ 🏆", row["แชมป์"]))
+            cards.append(ui.card(row["ชื่อบั้งไฟ"], badge, fields))
+        ui.render_cards(cards)
+        ui.more_button(rows_all, key="dash_cards")
     if search:
         note = "ค้นหาข้ามทุกตัว (ไม่ติดเงื่อนไขจำนวนครั้งที่แข่ง)"
     else:

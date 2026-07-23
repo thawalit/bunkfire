@@ -7,10 +7,11 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import config  # noqa: E402
+from app import ui  # noqa: E402
 from db.connection import get_connection, init_db  # noqa: E402
 from db.repository import mark_post_status  # noqa: E402
 
-st.set_page_config(page_title="Audit", page_icon="🔍", layout="wide")
+ui.setup_page("Audit", "🔍")
 
 
 @st.cache_resource
@@ -22,6 +23,7 @@ def get_db():
 
 st.title("🔍 Audit — ตรวจสอบการอ่านข้อมูลจากรูป")
 st.caption("ใช้หน้านี้จับกรณี Claude อ่านภาษาไทยผิด เทียบรูปต้นฉบับกับ JSON ที่สกัดได้")
+ui.nav_links(current="ตรวจข้อมูล")
 
 conn = get_db()
 
@@ -47,7 +49,9 @@ if not posts:
     st.info("ยังไม่มีโพสต์ที่ประมวลผลแล้ว")
 
 for post in posts:
-    with st.expander(f"โพสต์ #{post['id']} — {post['post_url']}"):
+    # หัว expander ใช้ id + วันที่ (URL เต็มยาวเกินจอมือถือ) — ลิงก์โพสต์อยู่ด้านในแทน
+    with st.expander(f"โพสต์ #{post['id']} — {post['scraped_at'] or ''}"):
+        st.markdown(f"[เปิดโพสต์ต้นฉบับบน Facebook ↗]({post['post_url']})")
         col1, col2 = st.columns([1, 1])
         with col1:
             # สร้าง path จาก fb_post_id ให้พกพาได้ (image_local_path เดิมเป็น absolute ของเครื่องที่ scrape
@@ -59,7 +63,8 @@ for post in posts:
                 st.warning("ไม่พบไฟล์รูป (ยังไม่ได้ commit รูปนี้ขึ้น repo)")
         with col2:
             if post["vision_raw_response"]:
-                st.json(json.loads(post["vision_raw_response"]))
+                # expanded=1: โชว์แค่ชั้นแรก กด▸ดูรายละเอียดเอง — JSON เต็มยาวมากบนจอมือถือ
+                st.json(json.loads(post["vision_raw_response"]), expanded=1)
             mismatches = conn.execute(
                 "SELECT rr.* FROM rocket_results rr JOIN events e ON e.id = rr.event_id "
                 "WHERE e.post_id = ? AND rr.outcome_mismatch = 1", (post["id"],),
