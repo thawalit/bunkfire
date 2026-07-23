@@ -23,7 +23,6 @@ def get_db():
 
 st.title("🔍 Audit — ตรวจสอบการอ่านข้อมูลจากรูป")
 st.caption("ใช้หน้านี้จับกรณี Claude อ่านภาษาไทยผิด เทียบรูปต้นฉบับกับ JSON ที่สกัดได้")
-ui.nav_links(current="ตรวจข้อมูล")
 
 conn = get_db()
 

@@ -13,14 +13,10 @@ MOBILE_BREAKPOINT = 640
 
 _CSS = f"""
 <style>
-/* ---------- ซ่อน header ของ Streamlit (ปุ่ม Share/แก้ไข/GitHub) — กินที่บนจอเปล่าๆ
-   การไปหน้าอื่นใช้เมนูลัดบนหน้าแทน sidebar อยู่แล้ว ---------- */
-header[data-testid="stHeader"] {{ display: none !important; }}
-.block-container {{ padding-top: 1.5rem !important; }}
-
 /* ---------- ทั่วไป: ลดขอบ/ระยะห่างบนจอเล็ก ให้เนื้อหาได้พื้นที่เต็ม ---------- */
 @media (max-width: {MOBILE_BREAKPOINT}px) {{
-  .block-container {{ padding: 1rem 0.75rem 3rem !important; }}
+  /* เว้นด้านบนให้พ้น header bar ของ Streamlit (ไม่งั้นชื่อหน้าถูกบัง) */
+  .block-container {{ padding: 4.5rem 0.75rem 3rem !important; }}
   h1 {{ font-size: 1.35rem !important; line-height: 1.35 !important; }}
   h2 {{ font-size: 1.15rem !important; }}
   h3 {{ font-size: 1.02rem !important; }}
@@ -30,12 +26,10 @@ header[data-testid="stHeader"] {{ display: none !important; }}
   [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
     flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
   }}
-  /* ยกเว้นแถว metric และเมนูลัด: ให้เรียง 2 ช่องต่อแถว จะได้ไม่กินพื้นที่แนวตั้ง */
-  .st-key-metric_row [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
-  .st-key-nav_row [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+  /* ยกเว้นแถว metric: ให้เรียง 2 ช่องต่อแถว จะได้ไม่กินพื้นที่แนวตั้ง */
+  .st-key-metric_row [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
     flex: 1 1 calc(50% - 0.5rem) !important; width: auto !important; min-width: calc(50% - 0.5rem) !important;
   }}
-  .st-key-nav_row a {{ min-height: 44px; }}
   [data-testid="stMetricValue"] {{ font-size: 1.35rem !important; }}
   [data-testid="stMetricLabel"] p {{ font-size: 0.78rem !important; }}
 
@@ -79,31 +73,13 @@ header[data-testid="stHeader"] {{ display: none !important; }}
 
 
 def setup_page(title: str, icon: str) -> None:
-    """ตั้งค่าหน้า + ใส่ CSS มือถือ (เรียกเป็นบรรทัดแรกของทุกหน้า)"""
-    st.set_page_config(
-        page_title=title,
-        page_icon=icon,
-        layout="wide",
-        # บนมือถือ sidebar ที่กางค้างไว้จะบังเนื้อหา — เก็บไว้ก่อน แล้วมีเมนูลัดด้านบนแทน
-        initial_sidebar_state="collapsed",
-    )
+    """ตั้งค่าหน้า + ใส่ CSS มือถือ (เรียกเป็นบรรทัดแรกของทุกหน้า)
+
+    การไปหน้าอื่นใช้เมนู sidebar ของ Streamlit ตามปกติ (บนมือถือกดลูกศร » มุมซ้ายบน
+    แล้ว sidebar จะพับเก็บให้เองหลังเลือกหน้า)
+    """
+    st.set_page_config(page_title=title, page_icon=icon, layout="wide")
     st.markdown(_CSS, unsafe_allow_html=True)
-
-
-def nav_links(current: str) -> None:
-    """เมนูลัดด้านบนของหน้า — บนมือถือ sidebar ถูกซ่อน ผู้ใช้จึงต้องมีทางไปหน้าอื่นตรงนี้"""
-    # path ต้อง relative กับไฟล์ entrypoint (app/streamlit_app.py) ตามข้อกำหนดของ st.page_link
-    pages = [
-        ("streamlit_app.py", "หน้าแรก", "🏠"),
-        ("pages/1_Dashboard.py", "สถิติ", "📊"),
-        ("pages/2_Upload_Check.py", "เช็ครายชื่อ", "📋"),
-        ("pages/3_Audit.py", "ตรวจข้อมูล", "🔍"),
-    ]
-    with st.container(key="nav_row"):
-        cols = st.columns(len(pages))
-        for col, (path, label, icon) in zip(cols, pages):
-            with col:
-                st.page_link(path, label=label, icon=icon, disabled=(label == current))
 
 
 def card(title: str, badge: tuple[str, str] | None, fields: list[tuple[str, object]], note: str = "") -> str:

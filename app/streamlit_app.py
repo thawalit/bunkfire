@@ -21,9 +21,10 @@ def get_db() -> sqlite3.Connection:
 
 
 st.title("🚀 สถิติแพ้ชนะบั้งไฟ — BANHAOSTATION")
-st.caption("ข้อมูลสกัดจากโพสต์ผลการแข่งขันด้วย Claude Vision — เลือกเมนูด้านล่างเพื่อดูสถิติหรือเช็ครายชื่อ")
-
-ui.nav_links(current="หน้าแรก")
+st.caption(
+    "ข้อมูลสกัดจากโพสต์ผลการแข่งขันด้วย Claude Vision — ใช้เมนูด้านซ้าย (») เพื่อดูสถิติ "
+    "หรืออัปโหลดรายชื่อบั้งไฟเพื่อเช็คผ่าน/ไม่ผ่าน"
+)
 
 conn = get_db()
 boards_count = conn.execute("SELECT COUNT(*) c FROM posts WHERE status = 'vision_processed'").fetchone()["c"]

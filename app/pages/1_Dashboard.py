@@ -23,7 +23,6 @@ def get_db():
 
 
 st.title("📊 Dashboard — สถิติบั้งไฟทั้งหมด")
-ui.nav_links(current="สถิติ")
 
 conn = get_db()
 rows = get_all_rocket_stats(conn)
