@@ -32,12 +32,15 @@ df = pd.DataFrame([dict(r) for r in rows])
 if df.empty:
     st.warning("ยังไม่มีข้อมูล — ต้องรัน `python cli.py scrape` และ `python cli.py extract-pending` ก่อน")
 else:
-    # ค้นหามาก่อน — เป็นสิ่งที่ผู้ใช้ทำบ่อยสุด (บนมือถือคอลัมน์จะซ้อนเป็นแนวตั้งตามลำดับนี้)
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        search = st.text_input("ค้นหาชื่อบั้งไฟ", placeholder="พิมพ์บางส่วนของชื่อก็ได้ เช่น เจ้าพายุ")
-    with col2:
-        min_races = st.number_input("แข่งอย่างน้อย (ครั้ง)", min_value=1, value=2, step=1)
+    # ครอบด้วย form + ปุ่มค้นหา — บนมือถือกด Enter จากคีย์บอร์ดไม่สะดวก ให้กดปุ่มแทน
+    # (ค้นหามาก่อนเพราะใช้บ่อยสุด; บนมือถือคอลัมน์จะซ้อนเป็นแนวตั้งตามลำดับนี้)
+    with st.form("filter_form", border=False):
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            search = st.text_input("ค้นหาชื่อบั้งไฟ", placeholder="พิมพ์บางส่วนของชื่อก็ได้ เช่น เจ้าพายุ")
+        with col2:
+            min_races = st.number_input("แข่งอย่างน้อย (ครั้ง)", min_value=1, value=2, step=1)
+        st.form_submit_button("🔍 ค้นหา", type="primary", width="stretch")
 
     if search:
         # ค้นหาข้ามทุกตัว (ไม่ติดเงื่อนไข min_races) เพื่อให้เจอชื่อที่เจาะจงเสมอ แม้แข่งน้อยครั้ง
